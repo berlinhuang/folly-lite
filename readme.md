@@ -11,8 +11,8 @@
 
 ## usage
 ```
-make build
-cmake (fooly中CMakeLists.txt 所在目录)
+mkdir build && cd build
+cmake .. (folly中CMakeLists.txt 所在目录)
 make
 ./bin/testMain
 ```

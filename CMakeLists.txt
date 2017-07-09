@@ -32,16 +32,17 @@ elseif (APPLE)
 	set(PRIVATE_FOLLY_CXX_FLAGS ${PRIVATE_FOLLY_CXX_FLAGS} -DUNIX)
 else()
 	message("================== LINUX ============================")
-	set(PRIVATE_FOLLY_CXX_FLAGS ${PRIVATE_FOLLY_CXX_FLAGS} -DLINUX)
+	set(PRIVATE_FOLLY_CXX_FLAGS ${PRIVATE_FOLLY_CXX_FLAGS} -DLINUX)# link -DLINUX
 endif()
 
-
+message(${PRIVATE_FOLLY_CXX_FLAGS} ) #-lpthread-std=gnu++1y-g-O2-DHAVE_CONFIG_H-DLINUX
 # set incoude directories
-set (PRIVATE_INCLUDE_DIRS ${PRIVATE_INCLUDE_DIRS}
+set (PRIVATE_INCLUDE_DIRS ${PRIVATE_INCLUDE_DIRS}# ""
 	${PROJECT_SOURCE_DIR}/folly
 	${PROJECT_SOURCE_DIR}/jemalloc/include
 	)
-
+message("====PRIVATE_INCLUDE_DIRS=")
+message(${PRIVATE_INCLUDE_DIRS})#/home/berlin/code/github/folly-lite/folly /home/berlin/code/github/folly-lite/jemalloc/include
 # set compile flags
 add_compile_options(${PRIVATE_FOLLY_CXX_FLAGS})
 
@@ -53,71 +54,83 @@ if (USE_JEMALLOC)
 	set (PRIVATE_INCLUDE_DIRS ${PRIVATE_INCLUDE_DIRS}
 		${PROJECT_SOURCE_DIR}/jemalloc/jemalloc-4.2.0/include
 	)
-
+	message("====PRIVATE_INCLUDE_DIRS=")
+	message(${PRIVATE_INCLUDE_DIRS})
 	# compile jemalloc
-	message("compile jemalloc begain....")
+	message("compile jemalloc begin....")
+	#  unset(<variable> [CACHE])　　删除一个指定的变量，让它变成未定义的。如果指定了CACHE选项，那么这个变量将会从cache中删除而不是当前作用域。
 	unset (PRIVATE_LIB_JEMALLOC CACHE)
 	find_library (
 		PRIVATE_LIB_JEMALLOC
 		NAMES "jemalloc"
 	)
+	message(${PRIVATE_LIB_JEMALLOC}) #/usr/lib/x86_64-linux-gnu/libjemalloc.so
 	if ("PRIVATE_LIB_JEMALLOC-NOTFOUND" STREQUAL "${PRIVATE_LIB_JEMALLOC}" AND UNIX)
-	if (APPLE AND (NOT (CMAKE_OSX_ARCHITECTURES STREQUAL "")))
-	    set (PRIVATE_JEMALLOC_FLAGS "-arch ${CMAKE_OSX_ARCHITECTURES}")
-	else ()
-	    set (PRIVATE_JEMALLOC_FLAGS "")
-	endif ()
-	if (NOT MSVC)
-	    # suppose all compilers except MSVC support the "-std" argument.
-	    set (PRIVATE_JEMALLOC_FLAGS "${PRIVATE_JEMALLOC_FLAGS} -std=gnu99")
-	endif ()
+		if (APPLE AND (NOT (CMAKE_OSX_ARCHITECTURES STREQUAL "")))
+		    set (PRIVATE_JEMALLOC_FLAGS "-arch ${CMAKE_OSX_ARCHITECTURES}")
+		else ()
+		    set (PRIVATE_JEMALLOC_FLAGS "")
+		endif ()
 
-	# to compilde jemalloc, you should first run ./autogen.sh first in jemalloc source file folder
-	add_custom_command(
-			OUTPUT  ${PROJECT_SOURCE_DIR}/jemalloc/jemalloc-4.2.0/configure
-			COMMAND sh ${PROJECT_SOURCE_DIR}/jemalloc/jemalloc-4.2.0/autogen.sh
-			WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/jemalloc/jemalloc-4.2.0
-			COMMENT "run autogen to generate configure"
-			)
-	add_custom_target(T1 ALL DEPENDS ${PROJECT_SOURCE_DIR}/jemalloc/jemalloc-4.2.0/configure)
+		if (NOT MSVC)
+		    # suppose all compilers except MSVC support the "-std" argument.
+		    set (PRIVATE_JEMALLOC_FLAGS "${PRIVATE_JEMALLOC_FLAGS} -std=gnu99")
+		endif ()
+		message(${PRIVATE_JEMALLOC_FLAGS})
+		# to compilde jemalloc, you should first run ./autogen.sh first in jemalloc source file folder
+		add_custom_command(
+				OUTPUT  ${PROJECT_SOURCE_DIR}/jemalloc/jemalloc-4.2.0/configure
+				COMMAND sh ${PROJECT_SOURCE_DIR}/jemalloc/jemalloc-4.2.0/autogen.sh
+				WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/jemalloc/jemalloc-4.2.0
+				COMMENT "run autogen to generate configure"
+				)
+		add_custom_target(T1 ALL DEPENDS ${PROJECT_SOURCE_DIR}/jemalloc/jemalloc-4.2.0/configure)
 
-	include(ExternalProject)
-	ExternalProject_Add (libjemalloc-target
-	    SOURCE_DIR "${PROJECT_SOURCE_DIR}/jemalloc/jemalloc-4.2.0/src"
-	    PREFIX "${PROJECT_SOURCE_DIR}/jemalloc"
-	    BINARY_DIR "${BUILD_OUT_PATH}/CMakeFiles/CMakeTmp/jemalloc/build"
-	    STAMP_DIR "${BUILD_OUT_PATH}/CMakeFiles/CMakeTmp/jemalloc/timestamp"
-	    TMP_DIR "${BUILD_OUT_PATH}/CMakeFiles/CMakeTmp/jemalloc/tmp"
-	    CONFIGURE_COMMAND "${PROJECT_SOURCE_DIR}/jemalloc/jemalloc-4.2.0/configure"
-	        "--with-jemalloc-prefix=je_"
-	        "--disable-stats"
-	        "--enable-fill"
-	        "--prefix=${BUILD_OUT_PATH}"
-	        "je_cv_static_page_shift=12"
-	        "CC=${CMAKE_C_COMPILER} ${CMAKE_C_COMPILER_ARG1}"
-	        "CPPFLAGS=${CMAKE_C_FLAGS} ${PRIVATE_JEMALLOC_FLAGS}"
-	        "CFLAGS=${CMAKE_C_FLAGS} ${PRIVATE_JEMALLOC_FLAGS}"
-	        "LDFLAGS=${CMAKE_C_FLAGS} ${PRIVATE_JEMALLOC_FLAGS}"
-	    BUILD_COMMAND "make" "build_lib"
-	    INSTALL_DIR "${LIBRARY_OUTPUT_PATH}"
-	    INSTALL_COMMAND  "make"  install_include install_lib  install_bin
-	    )
-	# add dependencies for jemalloc
-	add_dependencies(libjemalloc-target ${PROJECT_SOURCE_DIR}/jemalloc/jemalloc-4.2.0/configure)
-	add_library(libjemalloc SHARED IMPORTED)
-	add_dependencies (libjemalloc libjemalloc-target)
+		include(ExternalProject)
+		ExternalProject_Add (libjemalloc-target
+		    SOURCE_DIR "${PROJECT_SOURCE_DIR}/jemalloc/jemalloc-4.2.0/src"
+		    PREFIX "${PROJECT_SOURCE_DIR}/jemalloc"
+		    BINARY_DIR "${BUILD_OUT_PATH}/CMakeFiles/CMakeTmp/jemalloc/build"
+		    STAMP_DIR "${BUILD_OUT_PATH}/CMakeFiles/CMakeTmp/jemalloc/timestamp"
+		    TMP_DIR "${BUILD_OUT_PATH}/CMakeFiles/CMakeTmp/jemalloc/tmp"
+		    CONFIGURE_COMMAND "${PROJECT_SOURCE_DIR}/jemalloc/jemalloc-4.2.0/configure"
+		        "--with-jemalloc-prefix=je_"
+		        "--disable-stats"
+		        "--enable-fill"
+		        "--prefix=${BUILD_OUT_PATH}"
+		        "je_cv_static_page_shift=12"
+		        "CC=${CMAKE_C_COMPILER} ${CMAKE_C_COMPILER_ARG1}"
+		        "CPPFLAGS=${CMAKE_C_FLAGS} ${PRIVATE_JEMALLOC_FLAGS}"
+		        "CFLAGS=${CMAKE_C_FLAGS} ${PRIVATE_JEMALLOC_FLAGS}"
+		        "LDFLAGS=${CMAKE_C_FLAGS} ${PRIVATE_JEMALLOC_FLAGS}"
+		    BUILD_COMMAND "make" "build_lib"
+		    INSTALL_DIR "${LIBRARY_OUTPUT_PATH}"
+		    INSTALL_COMMAND  "make"  install_include install_lib  install_bin
+		    )
+		# add dependencies for jemalloc
+		add_dependencies(libjemalloc-target ${PROJECT_SOURCE_DIR}/jemalloc/jemalloc-4.2.0/configure)
+		add_library(libjemalloc SHARED IMPORTED)
+		add_dependencies (libjemalloc libjemalloc-target)
 
 	elseif (NOT "PRIVATE_LIB_JEMALLOC-NOTFOUND" STREQUAL "${PRIVATE_LIB_JEMALLOC}")
-	# add library link
-	add_library(libjemalloc SHARED IMPORTED)
-	set_target_properties(libjemalloc PROPERTIES
-	    IMPORTED_LOCATION "${PRIVATE_LIB_JEMALLOC}"
-	    )
+		# add library link
+		add_library(libjemalloc SHARED IMPORTED)
+		set_target_properties(libjemalloc PROPERTIES
+		    IMPORTED_LOCATION "${PRIVATE_LIB_JEMALLOC}"
+		    )
 	endif ()
 
-  link_libraries(${CMAKE_CURRENT_BINARY_DIR}/lib/libjemalloc.so)
+	#message("===CMAKE_CURRENT_BINARY_DIR=")
+	#message(${CMAKE_CURRENT_BINARY_DIR}) 		#/home/berlin/code/github/folly-lite/build
+  	#link_libraries(${CMAKE_CURRENT_BINARY_DIR}/lib/libjemalloc.so) 	#/home/berlin/code/github/folly-lite/build/lib/libjemalloc.so
+
+	message("===CMAKE_CURRENT_BINARY_DIR=")
+  	message(${PRIVATE_LIB_JEMALLOC}) #/usr/lib/x86_64-linux-gnu/libjemalloc.so
+  	link_libraries(${PRIVATE_LIB_JEMALLOC})
+
 	link_libraries(pthread)
-  set (SRC_LIST ${PRIVATE_SRC_LIST})
+	
+  	set (SRC_LIST ${PRIVATE_SRC_LIST})
 	include_directories( ${PRIVATE_INCLUDE_DIRS} )
 	# build targets
 	add_executable(testFBString ${PROJECT_SOURCE_DIR}/test/testFBString.cpp)
